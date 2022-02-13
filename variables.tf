@@ -70,9 +70,3 @@ variable "ssh_existing_key_ids" {
   type        = list(number)
   default     = [24072603]
 }
-
-variable "user_data" {
-  description = "Droplet user data"
-  type        = string
-  default     = null
-}
