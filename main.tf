@@ -5,11 +5,17 @@ data "cloudflare_zones" "this" {
 }
 
 locals {
-  droplet_ssh_keys  = var.ssh_add_pub_key ? [digitalocean_ssh_key.this[0].fingerprint] : var.ssh_existing_key_ids
-  droplet_user_data = coalesce(var.user_data, file("${path.module}/files/user-data.yaml"))
+  droplet_ssh_keys = var.ssh_add_pub_key ? [digitalocean_ssh_key.this[0].fingerprint] : var.ssh_existing_key_ids
 }
 
 resource "random_pet" "this" {}
+
+resource "random_password" "quake" {
+  length  = 12
+  lower   = true
+  upper   = true
+  special = false
+}
 
 resource "digitalocean_firewall" "this" {
   name        = random_pet.this.id
@@ -40,13 +46,16 @@ resource "digitalocean_ssh_key" "this" {
 }
 
 resource "digitalocean_droplet" "this" {
-  image     = var.os_image
-  name      = random_pet.this.id
-  region    = var.region
-  size      = var.size
-  tags      = var.tags
-  ssh_keys  = local.droplet_ssh_keys
-  user_data = local.droplet_user_data
+  image    = var.os_image
+  name     = random_pet.this.id
+  region   = var.region
+  size     = var.size
+  tags     = var.tags
+  ssh_keys = local.droplet_ssh_keys
+  user_data = templatefile("${path.module}/files/user-data.yaml", {
+    hostname = random_pet.this.id,
+    password = random_password.quake.result
+  })
 }
 
 resource "cloudflare_record" "this" {
